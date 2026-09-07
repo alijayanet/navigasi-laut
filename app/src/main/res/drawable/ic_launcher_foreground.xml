@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:scaleX="0.75"
+        android:scaleY="0.75"
+        android:translateX="13.5"
+        android:translateY="13.5">
+        
+        <!-- Outer Compass Circle -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#64DFDF"
+            android:strokeWidth="2.5"
+            android:pathData="M 54,14 A 40,40 0 1 1 53.9,14" />
+        
+        <!-- Compass Marks -->
+        <path
+            android:fillColor="#E0FBFC"
+            android:pathData="M 52,6 L 56,6 L 54,12 Z
+                              M 52,102 L 56,102 L 54,96 Z
+                              M 6,52 L 6,56 L 12,54 Z
+                              M 102,52 L 102,56 L 96,54 Z" />
+
+        <!-- Maritime Ship Hull Silhouette -->
+        <path
+            android:fillColor="#FFD166"
+            android:pathData="M 28,64 L 80,64 L 72,80 C 62,84 46,84 36,80 Z" />
+        
+        <!-- Ship Cabin & Mast -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M 40,48 L 68,48 L 64,64 L 44,64 Z" />
+        <path
+            android:fillColor="#0D3B66"
+            android:pathData="M 46,52 L 52,52 L 52,58 L 46,58 Z
+                              M 56,52 L 62,52 L 62,58 L 56,58 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="1.5"
+            android:pathData="M 54,34 L 54,48 M 48,40 L 60,40" />
+
+        <!-- Radar/Beacon Wave Crests -->
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#48CAE4"
+            android:strokeWidth="3"
+            android:strokeLineCap="round"
+            android:pathData="M 22,86 C 36,82 48,90 62,86 C 76,82 86,88 94,86" />
+        <path
+            android:fillColor="#00000000"
+            android:strokeColor="#0077B6"
+            android:strokeWidth="2.5"
+            android:strokeLineCap="round"
+            android:pathData="M 18,94 C 34,90 50,98 66,94 C 80,90 92,96 100,94" />
+
+        <!-- Star / North Indicator -->
+        <path
+            android:fillColor="#EF476F"
+            android:pathData="M 54,20 L 57,30 L 54,27 L 51,30 Z" />
+    </group>
+</vector>

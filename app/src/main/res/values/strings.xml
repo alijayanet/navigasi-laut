@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Nusantara Bahari</string>
+    <string name="app_tagline">Sistem Pemantauan Maritim &amp; Keselamatan Nelayan Indonesia</string>
+    <string name="nav_map">Peta &amp; Kapal</string>
+    <string name="nav_weather">Cuaca &amp; Gelombang</string>
+    <string name="nav_waypoints">Spot &amp; Jaring</string>
+    <string name="nav_catch">Log Tangkapan</string>
+    <string name="nav_analytics">Analitik &amp; Rawan</string>
+    <string name="nav_safety">Darurat &amp; Servis</string>
+</resources>
