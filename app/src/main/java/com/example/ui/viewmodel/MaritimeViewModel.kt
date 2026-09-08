@@ -102,8 +102,65 @@ class MaritimeViewModel(application: Application) : AndroidViewModel(application
         totalCatchWeight = repository.totalCatchWeight.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
         totalRevenue = repository.totalRevenue.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
 
+        loadSavedVesselProfile()
         loadInitialData()
         startLiveShipSimulation()
+    }
+
+    private fun loadSavedVesselProfile() {
+        val prefs = getApplication<Application>().getSharedPreferences("user_vessel_profile", Context.MODE_PRIVATE)
+        val savedName = prefs.getString("vessel_name", "KM. BINTANG LAUT (Milik Anda)") ?: "KM. BINTANG LAUT (Milik Anda)"
+        val savedReg = prefs.getString("vessel_reg", "ID-JKT-8821") ?: "ID-JKT-8821"
+        val savedCaptain = prefs.getString("vessel_captain", "Capt. Budi Santoso") ?: "Capt. Budi Santoso"
+        val savedGt = prefs.getInt("vessel_gt", 15)
+        val savedCrew = prefs.getInt("vessel_crew", 4)
+
+        _uiState.update { current ->
+            current.copy(
+                userVessel = current.userVessel.copy(
+                    name = savedName,
+                    registrationNo = savedReg,
+                    captainName = savedCaptain,
+                    grossTonnage = savedGt,
+                    crewCount = savedCrew
+                )
+            )
+        }
+    }
+
+    fun updateUserVesselProfile(
+        name: String,
+        registrationNo: String,
+        captainName: String,
+        grossTonnage: Int,
+        crewCount: Int
+    ) {
+        val cleanName = name.trim().ifBlank { "KM. BINTANG LAUT (Milik Anda)" }
+        val cleanReg = registrationNo.trim().ifBlank { "ID-JKT-8821" }
+        val cleanCaptain = captainName.trim().ifBlank { "Nahkoda" }
+        val cleanGt = grossTonnage.coerceAtLeast(1)
+        val cleanCrew = crewCount.coerceAtLeast(1)
+
+        val prefs = getApplication<Application>().getSharedPreferences("user_vessel_profile", Context.MODE_PRIVATE)
+        prefs.edit()
+            .putString("vessel_name", cleanName)
+            .putString("vessel_reg", cleanReg)
+            .putString("vessel_captain", cleanCaptain)
+            .putInt("vessel_gt", cleanGt)
+            .putInt("vessel_crew", cleanCrew)
+            .apply()
+
+        _uiState.update { current ->
+            current.copy(
+                userVessel = current.userVessel.copy(
+                    name = cleanName,
+                    registrationNo = cleanReg,
+                    captainName = cleanCaptain,
+                    grossTonnage = cleanGt,
+                    crewCount = cleanCrew
+                )
+            )
+        }
     }
 
     private fun loadInitialData() {

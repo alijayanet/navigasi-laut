@@ -81,6 +81,7 @@ fun MapVesselScreen(
     var showAnchorDialog by remember { mutableStateOf(false) }
     var showTrackDialog by remember { mutableStateOf(false) }
     var showTideDialog by remember { mutableStateOf(false) }
+    var showEditVesselDialog by remember { mutableStateOf(false) }
     var isHudExpanded by remember(isLandscape) { mutableStateOf(!isLandscape) }
 
     val filteredVessels = remember(uiState.vessels, uiState.vesselFilter) {
@@ -224,7 +225,16 @@ fun MapVesselScreen(
                             }
                         }
 
-                        // 5. Check Tap on AIS Vessels
+                        // 5. Check Tap on Own Boat (Kapal Sendiri)
+                        val ownPos = geoToScreen(uiState.userVessel.latitude, uiState.userVessel.longitude)
+                        val odx = tapOffset.x - ownPos.x
+                        val ody = tapOffset.y - ownPos.y
+                        if ((odx * odx + ody * ody) < touchThresholdSq * 2.2f) {
+                            showEditVesselDialog = true
+                            return@detectTapGestures
+                        }
+
+                        // 6. Check Tap on AIS Vessels
                         val tappedVessel = filteredVessels.firstOrNull { v ->
                             val sPos = geoToScreen(v.latitude, v.longitude)
                             val dx = tapOffset.x - sPos.x
@@ -563,6 +573,17 @@ fun MapVesselScreen(
                             }
 
                             IconButton(
+                                onClick = { showEditVesselDialog = true },
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF0F172A).copy(alpha = 0.94f))
+                                    .border(1.dp, WarningAmber, CircleShape)
+                            ) {
+                                Icon(Icons.Default.DirectionsBoat, contentDescription = "Profil & Nama Kapal", tint = WarningAmber, modifier = Modifier.size(18.dp))
+                            }
+
+                            IconButton(
                                 onClick = { showNmeaDialog = true },
                                 modifier = Modifier
                                     .size(36.dp)
@@ -710,6 +731,9 @@ fun MapVesselScreen(
                 }
                 IconButton(onClick = { viewModel.toggleNightVision() }, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Nightlight, contentDescription = "Mode Malam", tint = if (uiState.isNightVisionActive) DangerRed else Color.White, modifier = Modifier.size(17.dp))
+                }
+                IconButton(onClick = { showEditVesselDialog = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.DirectionsBoat, contentDescription = "Nama Kapal", tint = WarningAmber, modifier = Modifier.size(17.dp))
                 }
                 IconButton(onClick = { showNmeaDialog = true }, modifier = Modifier.size(32.dp)) {
                     Icon(Icons.Default.Sensors, contentDescription = "NMEA", tint = SeafoamGreen, modifier = Modifier.size(17.dp))
@@ -957,6 +981,17 @@ fun MapVesselScreen(
             tide = tide,
             locationName = uiState.currentSeaLocationName,
             onDismiss = { showTideDialog = false }
+        )
+    }
+
+    if (showEditVesselDialog) {
+        EditVesselProfileDialog(
+            userVessel = uiState.userVessel,
+            onSaveProfile = { name, reg, cap, gt, crew ->
+                viewModel.updateUserVesselProfile(name, reg, cap, gt, crew)
+                android.widget.Toast.makeText(context, "Profil Kapal '$name' Berhasil Disimpan!", android.widget.Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showEditVesselDialog = false }
         )
     }
 }
@@ -1774,6 +1809,39 @@ private fun DrawScope.drawUserVessel(
         }
         drawPath(userShipPath, DangerRed)
         drawPath(userShipPath, Color.White, style = Stroke(width = 2f))
+    }
+
+    // Draw Own Vessel Name Badge Label (Nama Kapal Nelayan / Sendiri di Peta)
+    val textPaint = Paint().apply {
+        color = android.graphics.Color.WHITE
+        textSize = 10f * density
+        typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        isAntiAlias = true
+        setShadowLayer(4f, 0f, 0f, android.graphics.Color.BLACK)
+    }
+    val bgPaint = Paint().apply {
+        color = android.graphics.Color.argb(210, 15, 23, 42) // Dark Navy Glass
+        isAntiAlias = true
+    }
+    val borderPaint = Paint().apply {
+        color = android.graphics.Color.argb(240, 239, 68, 68) // DangerRed / Accent Border
+        style = Paint.Style.STROKE
+        strokeWidth = 1.6f * density
+        isAntiAlias = true
+    }
+
+    drawIntoCanvas { canvas ->
+        val speedKm = user.currentSpeedKnots * 1.852
+        val labelText = "🚩 ${user.name} (${String.format(Locale.US, "%.1f", user.currentSpeedKnots)} kts / ${String.format(Locale.US, "%.0f", speedKm)} km/j)"
+        val textWidth = textPaint.measureText(labelText)
+        val rectLeft = ux - textWidth / 2f - 7f
+        val rectTop = uy + 14f * s
+        val rectRight = ux + textWidth / 2f + 7f
+        val rectBottom = uy + 14f * s + 19f
+
+        canvas.nativeCanvas.drawRoundRect(rectLeft, rectTop, rectRight, rectBottom, 6f, 6f, bgPaint)
+        canvas.nativeCanvas.drawRoundRect(rectLeft, rectTop, rectRight, rectBottom, 6f, 6f, borderPaint)
+        canvas.nativeCanvas.drawText(labelText, ux - textWidth / 2f, uy + 14f * s + 14f, textPaint)
     }
 }
 
@@ -2967,4 +3035,97 @@ private fun TideCurrentDialog(
         }
     )
 }
+
+@Composable
+private fun EditVesselProfileDialog(
+    userVessel: UserVesselState,
+    onSaveProfile: (name: String, regNo: String, captain: String, gt: Int, crew: Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var name by remember { mutableStateOf(userVessel.name) }
+    var regNo by remember { mutableStateOf(userVessel.registrationNo) }
+    var captain by remember { mutableStateOf(userVessel.captainName) }
+    var grossTonnage by remember { mutableStateOf(userVessel.grossTonnage.toString()) }
+    var crewCount by remember { mutableStateOf(userVessel.crewCount.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.DirectionsBoat, contentDescription = null, tint = WarningAmber)
+                Column {
+                    Text("NAMA & IDENTITAS KAPAL", fontWeight = FontWeight.Black, fontSize = 14.sp)
+                    Text("Nama ini akan tampil di titik koordinat kapal Anda di peta", style = MaterialTheme.typography.labelSmall, color = WarningAmber)
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nama Kapal Anda (misal: KM. BARUNA JAYA)", fontSize = 11.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = regNo,
+                    onValueChange = { regNo = it },
+                    label = { Text("No. Tanda Selar / Registrasi (misal: ID-SUB-2024)", fontSize = 11.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = captain,
+                    onValueChange = { captain = it },
+                    label = { Text("Nama Nahkoda / Pemilik Kapal", fontSize = 11.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = grossTonnage,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) grossTonnage = it },
+                        label = { Text("Gross Tonnage (GT)", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = crewCount,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) crewCount = it },
+                        label = { Text("Jumlah ABK", fontSize = 11.sp) },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    onSaveProfile(
+                        name,
+                        regNo,
+                        captain,
+                        grossTonnage.toIntOrNull() ?: 15,
+                        crewCount.toIntOrNull() ?: 4
+                    )
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = SeafoamGreen, contentColor = Color.Black)
+            ) {
+                Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Simpan Profil Kapal", fontWeight = FontWeight.Bold, fontSize = 11.5.sp)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Batal") }
+        }
+    )
+}
+
 
